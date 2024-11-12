@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Video Call</title>
+    <style>
+        video {
+            width: 100%;
+            height: 250px;
+            background-color: #000;
+            border-radius: 8px;
+        }
+
+        button {
+            padding: 8px 15px;
+            background-color: #007bff;
+            border: none;
+            color: white;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+    </style>
+</head>
+
+<body>
+    <video id="myVideo" autoplay muted></video>
+    <video id="userVideo" autoplay></video>
+    <button id="callButton">Start Call</button>
+    <button id="endButton" style="background-color: red;">End Call</button>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io('http://localhost:5000');
+        const peerConnection = new RTCPeerConnection();
+
+        let localStream;
+
+        // Start the call by setting up the local stream and signaling
+        document.getElementById('callButton').onclick = async () => {
+            localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+            document.getElementById('myVideo').srcObject = localStream;
+            localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+
+            const offer = await peerConnection.createOffer();
+            await peerConnection.setLocalDescription(offer);
+
+            socket.emit('callUser', { userToCall: '6733033f93f75f0466e76881', signalData: offer });
+        };
+
+        // Answer an incoming call
+        socket.on('callUser', async (data) => {
+            await peerConnection.setRemoteDescription(new RTCSessionDescription(data.signal));
+            const answer = await peerConnection.createAnswer();
+            await peerConnection.setLocalDescription(answer);
+            socket.emit('answerCall', { to: data.from, signal: answer });
+        });
+
+        // Handle accepted call
+        socket.on('callAccepted', async (signal) => {
+            await peerConnection.setRemoteDescription(new RTCSessionDescription(signal));
+        });
+
+        // Handle ICE candidates
+        peerConnection.onicecandidate = (event) => {
+            if (event.candidate) {
+                socket.emit('sendIceCandidate', { to: '6733033f93f75f0466e76881', candidate: event.candidate });
+            }
+        };
+
+        peerConnection.ontrack = (event) => {
+            document.getElementById('userVideo').srcObject = event.streams[0];
+        };
+
+        // End the call
+        document.getElementById('endButton').onclick = () => {
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop()); // Stop local stream
+            }
+            peerConnection.close(); // Close peer connection
+            document.getElementById('myVideo').srcObject = null;
+            document.getElementById('userVideo').srcObject = null;
+            socket.emit('disconnectCall', { senderId: '673303a293f75f0466e76884' });
+        };
+    </script>
+</body>
+
+</html>
