@@ -85,7 +85,7 @@ const getAllusers = async (req, res) => {
             message: "successs",
             userData: userData
         });
-    } catch {
+    } catch (error) {
         res.send({
             message: "internal error",
             error: error

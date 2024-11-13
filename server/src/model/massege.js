@@ -1,9 +1,33 @@
 const mongoose = require('mongoose');
 
 const messageSchema = new mongoose.Schema({
-    sender: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    content: { type: String, required: true },
-    timestamp: { type: Date, default: Date.now }
+    senderId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: true,
+    },
+    receiverId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: true,
+    },
+    content: {
+        type: String,
+        required: true,
+    },
+    converstationId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Conversation',
+        // required: true,
+    },
+    messageType: {
+        type: String,
+        default: 'text',
+    },
+    fileUrl: {
+        type: String,
+        default: null,
+    },
 });
 
 module.exports = mongoose.model('Message', messageSchema);

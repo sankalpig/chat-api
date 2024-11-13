@@ -8,55 +8,111 @@ import {
     MDBIcon,
     MDBTypography,
     MDBInputGroup,
+    MDBBtn,
 } from "mdb-react-ui-kit";
-import { getAllUsers } from "../services/api";
+import { fileUploading, getAllUsers, getMsgBysenderId } from "../services/api";
 import { setupSocket, sendMessage, sendFile, socket } from "../services/socket";
 import getUserInfo from "../services/jwtDecod";
+import { Navigate } from 'react-router-dom';
 
 const Chat = () => {
     const [allUserData, setAllUserData] = useState([]);
     const [messages, setMessages] = useState([]);
     const [currentMessage, setCurrentMessage] = useState("");
+    const [currentUserId, setCurrentUserId] = useState("");
+    const [currentUserName, setCurrentUserName] = useState("");
+    const [update, setUpdate] = useState(false);
+    const [updateData, setUpdateData] = useState(false);
+    const [file, setFile] = useState(null);
     const { user } = getUserInfo();
 
+    // Fetch all users and set up socket connection once
     useEffect(() => {
         (async () => {
             const { data } = await getAllUsers();
             setAllUserData(data);
+            if (!update) {
+                setCurrentUserId(data?.userData[0]?._id);
+                setCurrentUserName(data?.userData[0]?.fullName);
+            }
+
         })();
 
-
-        const userId = user._id;
-        setupSocket(userId);
+        setupSocket(user._id);
 
         // Set up listeners for incoming messages
         const handleReceiveMessage = (message) => {
-            setMessages((prevMessages) => [...prevMessages, message]);
+            setMessages(message);
+            setUpdateData((prevStatew) => !prevStatew);
         };
 
         const handleReceiveFile = (fileData) => {
-            console.log("Received file:", fileData);
+            setMessages(fileData);
+            setUpdateData((prevStatew) => !prevStatew);
         };
 
-        // Socket.io listeners for messages and file uploads
+        // Attach socket listeners
         socket.on("receiveMessage", handleReceiveMessage);
         socket.on("receiveFile", handleReceiveFile);
 
-        // Cleanup listeners on component unmount
         return () => {
+            // Cleanup listeners on component unmount
             socket.off("receiveMessage", handleReceiveMessage);
             socket.off("receiveFile", handleReceiveFile);
         };
-    }, []);
+    }, [user._id, currentUserId, update]);
 
-    const handleSendMessage = () => {
+    // Fetch messages each time the current user changes
+    useEffect(() => {
+        if (currentUserId) {
+            (async () => {
+                const res = await getMsgBysenderId({
+                    senderId: user._id,
+                    receiverId: currentUserId,
+                });
+                setMessages(res.data);
+            })();
+        }
+    }, [currentUserId, updateData]);
+
+    const handleSendMessage = async () => {
         if (currentMessage.trim()) {
-            sendMessage({ content: currentMessage, senderId: user._id });
-            setMessages([...messages, { content: currentMessage, senderId: user._id }]);
+            const messageData = { content: currentMessage, senderId: user._id, receiverId: currentUserId };
+            sendMessage(messageData);
+            // setMessages((prevMessages) => [...prevMessages, messageData]);
             setCurrentMessage("");
         }
+
+        if (!file) {
+            return;
+        }
+        const formData = new FormData();
+        formData.append('file', file); // 'file' matches the backend field name
+        try {
+            const response = await fileUploading(formData);
+
+            sendFile({ senderId: user._id, receiverId: currentUserId, fileName: file.name, fileUrl: response.data.fileUrl, fileType: file.type });
+
+            console.log('File uploaded successfully:', response.data);
+        } catch (error) {
+            console.error('Error uploading file:', error);
+        }
+
+    };
+    const handleFileUpload = (e) => {
+        const uploadedFile = e.target.files[0];
+        if (uploadedFile) {
+            setFile(uploadedFile);
+        }
+
     };
 
+
+    const handleCalling = () => {
+        return (<Navigate to="/video-call" />);
+    };
+    // console.log(currentUserName);
+    console.log(currentUserId);
     return (
         <MDBContainer fluid className="py-5" style={{ backgroundColor: "#CDC4F9" }}>
             <MDBRow>
@@ -72,20 +128,23 @@ const Chat = () => {
                                                 placeholder="Search"
                                                 type="search"
                                             />
-                                            <span
-                                                className="input-group-text border-0"
-                                                id="search-addon"
-                                            >
+                                            <span className="input-group-text border-0" id="search-addon">
                                                 <MDBIcon fas icon="search" />
                                             </span>
                                         </MDBInputGroup>
                                         <MDBTypography listUnStyled className="mb-0">
                                             {allUserData?.userData?.map((data, index) => (
-                                                <li className="p-2 border-bottom" key={index}>
-                                                    <a
-                                                        href="#!"
-                                                        className="d-flex justify-content-between"
-                                                    >
+                                                <li
+                                                    className="p-2 border-bottom"
+                                                    key={index}
+                                                    onClick={() => {
+                                                        setCurrentUserName(data.fullName);
+                                                        setCurrentUserId(data._id);
+                                                        setMessages([]);
+                                                        setUpdate(true);
+                                                    }}
+                                                >
+                                                    <a href="#!" className="d-flex justify-content-between">
                                                         <div className="d-flex flex-row">
                                                             <img
                                                                 src="https://mdbcdn.b-cdn.net/img/Photos/new-templates/bootstrap-chat/ava1-bg.webp"
@@ -94,12 +153,8 @@ const Chat = () => {
                                                                 width="60"
                                                             />
                                                             <div className="pt-1">
-                                                                <p className="fw-bold mb-0">
-                                                                    {data.fullName}
-                                                                </p>
-                                                                <p className="small text-muted">
-                                                                    Hello, Are you there?
-                                                                </p>
+                                                                <p className="fw-bold mb-0">{data.fullName}</p>
+                                                                {/* <p className="small text-muted">Hello, Are you there?</p> */}
                                                             </div>
                                                         </div>
                                                     </a>
@@ -110,33 +165,50 @@ const Chat = () => {
                                 </MDBCol>
                                 <MDBCol md="6" lg="7" xl="8">
                                     <div className="pt-3 pe-3">
-                                        {messages.map((message, index) => (
+                                        <h4>{currentUserName}</h4>
+                                        {messages?.data?.length >= 0 ? messages?.data?.map((message, index) => (
                                             <div
                                                 key={index}
-                                                className={`d-flex ${message.senderId === "currentUserId"
-                                                    ? "justify-content-end"
-                                                    : "justify-content-start"
-                                                    }`}
                                             >
                                                 <div>
+
+                                                    <p> <b>{message.senderId.fullName}</b></p>
                                                     <p
                                                         className="small p-2 me-3 mb-1 rounded-3"
                                                         style={{
-                                                            backgroundColor:
-                                                                message.senderId === "currentUserId"
-                                                                    ? "#007bff"
-                                                                    : "#f5f6f7",
-                                                            color:
-                                                                message.senderId === "currentUserId"
-                                                                    ? "#fff"
-                                                                    : "#000",
+                                                            backgroundColor: "#f5f6f7",
+                                                            color: "#000"
                                                         }}
                                                     >
-                                                        {message.content}
+
+                                                        {message.messageType === "text" && message.content} <br />
+                                                        {message.messageType === "application/pdf" ? (
+                                                            <a href={message.fileUrl} target="_blank" rel="noopener noreferrer">
+                                                                {message.content}
+                                                            </a>
+                                                        ) : (
+                                                            <>  {message.fileUrl && <img src={message.fileUrl} alt="file" />}
+                                                            </>)}
+
+
                                                     </p>
                                                 </div>
+                                                {/* <div>
+                                                    <p> <b>{message.senderId.fullName}</b></p>
+                                                    <p
+                                                        className="small p-2 me-3 mb-1 rounded-3"
+                                                        style={{
+                                                            backgroundColor: "#f5f6f7",
+                                                            color: "#000"
+                                                        }}
+                                                    >
+
+                                                        {message.content}
+                                                    </p>
+                                                </div> */}
                                             </div>
-                                        ))}
+                                        )) : <><p>Message not available</p></>}
+
                                     </div>
                                     <div className="text-muted d-flex justify-content-start align-items-center pe-3 pt-3 mt-2">
                                         <input
@@ -150,7 +222,18 @@ const Chat = () => {
                                         <a className="ms-1 text-muted" href="#!" onClick={handleSendMessage}>
                                             <MDBIcon fas icon="paper-plane" />
                                         </a>
+
+
                                     </div>
+                                    <input
+                                        type="file"
+                                        className="form-control form-control-lg"
+                                        placeholder="Type message"
+                                        onChange={(e) => handleFileUpload(e)}
+                                    />
+
+
+                                    <MDBBtn onClick={() => handleCalling()} >call</MDBBtn>
                                 </MDBCol>
                             </MDBRow>
                         </MDBCardBody>

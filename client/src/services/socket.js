@@ -6,6 +6,10 @@ const socket = io("http://localhost:5000");
 export const setupSocket = (userId) => {
     socket.emit("joinRoom", userId);
 
+    socket.on("message", (meess) => {
+        console.log(meess, 'meess');
+    });
+
     socket.on("receiveMessage", (message) => {
         console.log(message);
     });
@@ -30,6 +34,7 @@ export const setupSocket = (userId) => {
 export const sendMessage = (message) => {
     socket.emit("sendMessage", message);
 };
+
 
 export const sendFile = (fileData) => {
     socket.emit("sendFile", fileData);

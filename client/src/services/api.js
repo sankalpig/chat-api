@@ -17,3 +17,13 @@ export const getAllUsers = async () => {
         headers: { Authorization: `Bearer ${token}` }
     });
 };
+export const getMsgBysenderId = async (body) => {
+    return await axios.post(`${API_URL}/messages/msg`, body, {
+        headers: { Authorization: `Bearer ${token}` },
+    });
+};
+export const fileUploading = async (body) => {
+    return await axios.post(`http://localhost:5000/upload`, body, {
+        headers: { Authorization: `Bearer ${token}` },
+    });
+};

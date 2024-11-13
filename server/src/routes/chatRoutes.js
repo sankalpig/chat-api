@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { userLogin, userRegister, getAllusers, deleteUsersById, getUserById, archiveChat } = require('../controller/userController');
-const { getTheMassege, deleteMessage, getMsgBysenderId } = require('../controller/massegeController');
+const { getTheMassege, deleteMessage, getMsgBysenderId, getConversationsData } = require('../controller/massegeController');
 const { isAuth } = require('../config/isAuth');
 
 // Register a new user
@@ -15,6 +15,7 @@ router.get('/users/:id', isAuth, archiveChat);
 // Get all messages
 router.get('/messages', isAuth, getTheMassege);
 router.delete('/messages/delete/:msgId', isAuth, deleteMessage);
-router.get('/messages/msg/:msgId', getMsgBysenderId);
+router.post('/messages/msg', isAuth, getMsgBysenderId);
+router.post('/conversations', isAuth, getConversationsData);
 
 module.exports = router;
