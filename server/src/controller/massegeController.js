@@ -92,7 +92,7 @@ const deleteMessage = async (req, res) => {
         const mesaage = await Message.findByIdAndDelete(msgId);
 
         if (!mesaage) {
-            return res.status(404).json({
+            return res.status(201).json({
                 message: 'mesaage not found'
             });
         }

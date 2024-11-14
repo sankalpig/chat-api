@@ -31,7 +31,7 @@ const App = () => {
 
         {/* Private routes */}
         <Route path="/" element={<PrivateRoute element={<Chat />} />} />
-        <Route path="/video-call" element={<PrivateRoute element={<VideoCall />} />} />
+        <Route path="/video-call/:roomId" element={<PrivateRoute element={<VideoCall />} />} />
       </Routes>
     </Router>
   );

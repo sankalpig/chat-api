@@ -2,20 +2,16 @@ import { io } from "socket.io-client";
 
 // Initialize socket connection
 const socket = io("http://localhost:5000");
+const token = localStorage.getItem('token');
+export const setupSocket = ({ senderId, receiverId }) => {
+    socket.emit("joinRoom", { token, senderId, receiverId });
 
-export const setupSocket = (userId) => {
-    socket.emit("joinRoom", userId);
-
-    socket.on("message", (meess) => {
-        console.log(meess, 'meess');
-    });
-
-    socket.on("receiveMessage", (message) => {
-        console.log(message);
+    socket.on("message", (message) => {
+        console.log("New message:", message);
     });
 
     socket.on("receiveFile", (fileData) => {
-        console.log(fileData);
+        console.log("Received file:", fileData);
     });
 
     socket.on("callUser", (data) => {
@@ -25,20 +21,16 @@ export const setupSocket = (userId) => {
     socket.on("callAccepted", (signal) => {
         console.log("Call Accepted:", signal);
     });
-
-    socket.on("callDisconnected", () => {
-        console.log("Call Disconnected");
-    });
 };
 
-export const sendMessage = (message) => {
-    socket.emit("sendMessage", message);
+export const sendMessage = ({ senderId, receiverId, content }) => {
+    socket.emit("sendMessage", { senderId, receiverId, content });
 };
 
-
-export const sendFile = (fileData) => {
-    socket.emit("sendFile", fileData);
+export const sendFile = ({ senderId, receiverId, fileName, fileUrl, fileType }) => {
+    socket.emit("sendFile", { senderId, receiverId, fileName, fileUrl, fileType });
 };
+
 
 // Export socket instance to be used directly
 export { socket };

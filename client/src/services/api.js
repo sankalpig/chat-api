@@ -22,8 +22,15 @@ export const getMsgBysenderId = async (body) => {
         headers: { Authorization: `Bearer ${token}` },
     });
 };
+export const deleteMsgById = async (id) => {
+    return await axios.delete(`${API_URL}/messages/delete/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+    });
+};
 export const fileUploading = async (body) => {
     return await axios.post(`http://localhost:5000/upload`, body, {
         headers: { Authorization: `Bearer ${token}` },
     });
+
+
 };

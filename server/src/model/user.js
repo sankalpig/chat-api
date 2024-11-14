@@ -5,6 +5,7 @@ const userSchema = new mongoose.Schema({
     Number: { type: Number },
     username: { type: String, required: true, unique: true },
     email: { type: String, required: true, unique: true },
+    lastMessage: { type: String, },
     password: { type: String, required: true },
     isActive: { type: Boolean, default: false },
     isArchive: { type: Boolean, default: false }

@@ -10,10 +10,11 @@ import {
     MDBInputGroup,
     MDBBtn,
 } from "mdb-react-ui-kit";
-import { fileUploading, getAllUsers, getMsgBysenderId } from "../services/api";
+import { deleteMsgById, fileUploading, getAllUsers, getMsgBysenderId } from "../services/api";
 import { setupSocket, sendMessage, sendFile, socket } from "../services/socket";
 import getUserInfo from "../services/jwtDecod";
-import { Navigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+
 
 const Chat = () => {
     const [allUserData, setAllUserData] = useState([]);
@@ -22,10 +23,11 @@ const Chat = () => {
     const [currentUserId, setCurrentUserId] = useState("");
     const [currentUserName, setCurrentUserName] = useState("");
     const [update, setUpdate] = useState(false);
+
     const [updateData, setUpdateData] = useState(false);
     const [file, setFile] = useState(null);
     const { user } = getUserInfo();
-
+    const navigate = useNavigate();
     // Fetch all users and set up socket connection once
     useEffect(() => {
         (async () => {
@@ -38,10 +40,14 @@ const Chat = () => {
 
         })();
 
-        setupSocket(user._id);
+        setupSocket({
+            senderId: user._id,
+            receiverId: currentUserId,
+        });
 
         // Set up listeners for incoming messages
         const handleReceiveMessage = (message) => {
+            console.log(message, "messages from socket");
             setMessages(message);
             setUpdateData((prevStatew) => !prevStatew);
         };
@@ -50,15 +56,22 @@ const Chat = () => {
             setMessages(fileData);
             setUpdateData((prevStatew) => !prevStatew);
         };
+        const handlePreviesMsg = (preMsg) => {
+            setMessages(preMsg);
+            setUpdateData((prevStatew) => !prevStatew);
+        };
 
         // Attach socket listeners
         socket.on("receiveMessage", handleReceiveMessage);
         socket.on("receiveFile", handleReceiveFile);
+        socket.on("previousMessages", handleReceiveFile);
+        // socket.on("disconnect-user", () => { setUpdateData((prevStatew) => !prevStatew); });
 
         return () => {
-            // Cleanup listeners on component unmount
             socket.off("receiveMessage", handleReceiveMessage);
             socket.off("receiveFile", handleReceiveFile);
+            socket.off("previousMessages", handlePreviesMsg);
+            // socket.off("disconnect-user", () => { setUpdateData((prevStatew) => !prevStatew); });
         };
     }, [user._id, currentUserId, update]);
 
@@ -109,16 +122,30 @@ const Chat = () => {
 
 
     const handleCalling = () => {
-        return (<Navigate to="/video-call" />);
+        const roomId = [user._id, currentUserId].sort().join("-");
+
+        navigate(`/video-call/${roomId}`);
     };
-    // console.log(currentUserName);
-    console.log(currentUserId);
+    // console.log(currentUserId);
+
+    const handleLogOut = () => {
+        localStorage.removeItem("token");
+        navigate("/login");
+    };
+    const handleDelete = async (id) => {
+        // console.log("deleteing...", id);
+        await deleteMsgById(id);
+        setUpdateData((prevStatew) => !prevStatew);
+        // console.log(resDelete);
+
+    };
     return (
         <MDBContainer fluid className="py-5" style={{ backgroundColor: "#CDC4F9" }}>
             <MDBRow>
                 <MDBCol md="12">
                     <MDBCard id="chat3" style={{ borderRadius: "15px" }}>
                         <MDBCardBody>
+                            <h4>{user.fullName}</h4>
                             <MDBRow>
                                 <MDBCol md="6" lg="5" xl="4" className="mb-4 mb-md-0">
                                     <div className="p-3">
@@ -154,7 +181,8 @@ const Chat = () => {
                                                             />
                                                             <div className="pt-1">
                                                                 <p className="fw-bold mb-0">{data.fullName}</p>
-                                                                {/* <p className="small text-muted">Hello, Are you there?</p> */}
+                                                                <p className="small text-muted">{data.lastMessage}</p>
+                                                                <p>{data.isActive && "online"}</p>
                                                             </div>
                                                         </div>
                                                     </a>
@@ -183,7 +211,7 @@ const Chat = () => {
 
                                                         {message.messageType === "text" && message.content} <br />
                                                         {message.messageType === "application/pdf" ? (
-                                                            <a href={message.fileUrl} target="_blank" rel="noopener noreferrer">
+                                                            <a href={message.fileUrl} target="_blank" rel="noopener noreferrer" download>
                                                                 {message.content}
                                                             </a>
                                                         ) : (
@@ -192,6 +220,7 @@ const Chat = () => {
 
 
                                                     </p>
+                                                    <MDBBtn onClick={() => handleDelete(message._id)}>delete</MDBBtn>
                                                 </div>
                                                 {/* <div>
                                                     <p> <b>{message.senderId.fullName}</b></p>
@@ -240,6 +269,7 @@ const Chat = () => {
                     </MDBCard>
                 </MDBCol>
             </MDBRow>
+            <MDBBtn onClick={() => handleLogOut()} >LogOut</MDBBtn>
         </MDBContainer>
     );
 };
