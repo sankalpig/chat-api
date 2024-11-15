@@ -121,6 +121,7 @@ const Chat = () => {
             const response = await fileUploading(formData);
 
             sendFile({ senderId: user._id, receiverId: currentUserId, fileName: file.name, fileUrl: response.data.fileUrl, fileType: file.type });
+            setFile(null);
 
             // console.log('File uploaded successfully:', response.data);
         } catch (error) {
