@@ -70,6 +70,12 @@ const Chat = () => {
             navigate(`/video-call/${roomId}`);
         };
 
+        const deletedMsg = (data) => {
+            console.log(data);
+            setUpdateData((prevStatew) => !prevStatew);
+
+        };
+
         // Attach socket listeners
         socket.on("receiveMessage", handleReceiveMessage);
         socket.on("receiveFile", handleReceiveFile);
@@ -78,6 +84,7 @@ const Chat = () => {
             setUpdateData((prevStatew) => !prevStatew);
         });
         socket.on('callUser', callingNotification);
+        socket.on("deletedMessage", deletedMsg);
 
 
         return () => {
@@ -88,6 +95,7 @@ const Chat = () => {
                 setUpdateData((prevStatew) => !prevStatew);
             });
             socket.off("callUser", callingNotification);
+            socket.off("deletedMessage", deletedMsg);
         };
     }, [user._id, currentUserId, update]);
 
@@ -148,11 +156,11 @@ const Chat = () => {
         localStorage.removeItem("token");
         navigate("/login");
     };
-    const handleDelete = async (id) => {
-        // console.log("deleteing...", id);
-        await deleteMsgById(id);
-        setUpdateData((prevStatew) => !prevStatew);
-        // console.log(resDelete);
+    const handleDelete = async (data) => {
+        socket.emit("deleteMessage", {
+            receiverId
+                : data.receiverId._id, senderId: data.senderId._id, msgId: data._id
+        });
 
     };
     // console.log(allUserData);
@@ -259,7 +267,7 @@ const Chat = () => {
                                                             )}
                                                         </p>
 
-                                                        <MDBBtn onClick={() => handleDelete(message._id)}>delete</MDBBtn>
+                                                        <MDBBtn onClick={() => handleDelete(message)}>delete</MDBBtn>
                                                     </div>
                                                 </div>
                                             ))

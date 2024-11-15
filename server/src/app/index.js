@@ -10,10 +10,10 @@ const fs = require('fs');
 const chatRoutes = require('../routes/chatRoutes');
 const Message = require('../model/massege');
 const { connectToDatabase } = require('../config/dbConfig');
-const Conversation = require("../model/converstion");
+// const Conversation = require("../model/converstion");
 const User = require("../model/user");
 const { isAuth } = require('../config/isAuth');
-const webPush = require('web-push');
+// const webPush = require('web-push');
 
 
 const app = express();
@@ -250,6 +250,63 @@ io.on('connection', async (socket) => {
             console.error("Error sending file:", error);
         }
     });
+
+    socket.on('deleteMessage', async ({ senderId, receiverId, msgId }) => {
+        try {
+            const roomId = [senderId, receiverId].sort().join('-');
+
+            // Find the message by ID
+            const message = await Message.findByIdAndDelete(msgId);
+
+            // If the message doesn't exist, return an error
+            if (!message) {
+                return res.status(404).json({
+                    message: 'Message not found'
+                });
+            }
+
+            // Check if the message has a fileUrl (it means there's a file associated with it)
+            if (message.fileUrl) {
+                const filePath = path.join(__dirname, '../app/uploads', message.fileUrl.split('/').pop()); // Assuming 'uploads' folder stores your files
+                console.log(filePath);
+                // Check if the file exists and delete it
+                fs.unlink(filePath, (err) => {
+                    if (err) {
+                        console.error('Error deleting file:', err);
+                    } else {
+                        // const sourceFilePath = path.join(__dirname, '../app/uploads', message.fileUrl.split('/').pop());
+                        // const destinationFilePath = path.join(__dirname, '../app/logsFile', message.fileUrl.split('/').pop());
+
+                        // // Move the file
+                        // moveFile(sourceFilePath, destinationFilePath);
+
+                        console.log('File deleted successfully:', filePath);
+                    }
+                });
+            }
+
+
+            // Emit the message to the room if the receiver is not online
+            io.to(roomId).emit('deletedMessage', {
+                message: 'Message deleted successfully',
+                messageData: message
+            });
+
+        } catch (error) {
+            console.error("Error sending message:", error);
+        }
+    });
+
+
+
+
+
+
+
+
+
+
+
 
     socket.on('callUser', ({ roomId, userToCall, signalData, from }) => {
         io.to(roomId).emit('callUser', { signal: signalData, from });
