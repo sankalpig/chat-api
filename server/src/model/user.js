@@ -8,7 +8,7 @@ const userSchema = new mongoose.Schema({
     lastMessage: { type: String, },
     password: { type: String, required: true },
     isActive: { type: Boolean, default: false },
-    isArchive: { type: Boolean, default: false }
-});
+    isArchive: { type: Boolean, default: false },
+}, { timestamps: true });
 
 module.exports = mongoose.model('User', userSchema);

@@ -10,6 +10,7 @@ import {
     MDBInputGroup,
     MDBBtn,
 } from "mdb-react-ui-kit";
+import moment from 'moment';
 import { deleteMsgById, fileUploading, getAllUsers, getMsgBysenderId } from "../services/api";
 import { setupSocket, sendMessage, sendFile, socket } from "../services/socket";
 import getUserInfo from "../services/jwtDecod";
@@ -33,7 +34,7 @@ const Chat = () => {
         (async () => {
             const { data } = await getAllUsers(user._id);
             setAllUserData(data);
-            console.log(data);
+            // console.log(data);
             if (!update) {
                 setCurrentUserId(data?.userData[0]?._id);
                 setCurrentUserName(data?.userData[0]?.fullName);
@@ -66,13 +67,17 @@ const Chat = () => {
         socket.on("receiveMessage", handleReceiveMessage);
         socket.on("receiveFile", handleReceiveFile);
         socket.on("previousMessages", handleReceiveFile);
-        // socket.on("disconnect-user", () => { setUpdateData((prevStatew) => !prevStatew); });
+        socket.on("disconnect-user", () => {
+            setUpdateData((prevStatew) => !prevStatew);
+        });
 
         return () => {
             socket.off("receiveMessage", handleReceiveMessage);
             socket.off("receiveFile", handleReceiveFile);
             socket.off("previousMessages", handlePreviesMsg);
-            // socket.off("disconnect-user", () => { setUpdateData((prevStatew) => !prevStatew); });
+            socket.off("disconnect-user", () => {
+                setUpdateData((prevStatew) => !prevStatew);
+            });
         };
     }, [user._id, currentUserId, update]);
 
@@ -120,8 +125,6 @@ const Chat = () => {
         }
 
     };
-
-
     const handleCalling = () => {
         const roomId = [user._id, currentUserId].sort().join("-");
 
@@ -140,6 +143,7 @@ const Chat = () => {
         // console.log(resDelete);
 
     };
+    console.log(allUserData);
     return (
         <MDBContainer fluid className="py-5" style={{ backgroundColor: "#CDC4F9" }}>
             <MDBRow>
@@ -182,7 +186,7 @@ const Chat = () => {
                                                             />
                                                             <div className="pt-1">
                                                                 <p className="fw-bold mb-0">{data.fullName}</p>
-                                                                <p className="small text-muted">{data.lastMessage}</p>
+                                                                {/* <p className="small text-muted">{data.lastMessage}</p> */}
                                                                 <p>{data.isActive && "online"}</p>
                                                             </div>
                                                         </div>
@@ -201,7 +205,10 @@ const Chat = () => {
                                             >
                                                 <div>
 
-                                                    <p> <b>{message.senderId.fullName}</b></p>
+                                                    <p> <b>{message.senderId.fullName}</b>
+                                                        <span> {moment(message.createdAt).format('MMMM Do YYYY, h:mm:ss a')}</span>
+
+                                                    </p>
                                                     <p
                                                         className="small p-2 me-3 mb-1 rounded-3"
                                                         style={{
