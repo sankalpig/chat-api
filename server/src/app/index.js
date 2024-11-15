@@ -56,30 +56,108 @@ const storage = multer.diskStorage({
         cb(null, Date.now() + path.extname(file.originalname));
     }
 });
-const upload = multer({ storage });
+// File type validation
+const fileFilter = (req, file, cb) => {
+    const allowedTypes = [
+        'application/pdf',
+        'image/jpeg',
+        'image/png',
+        'image/gif',
+        'audio/mpeg',
+        'video/mp4',
+        'video/avi',
+        'video/webm'
+    ];
+
+    if (allowedTypes.includes(file.mimetype)) {
+        cb(null, true);
+    } else {
+        cb(new Error('Only images, PDFs, MP3s, and videos are allowed'), false);
+    }
+};
+
+const upload = multer({ storage, fileFilter });
 
 // Endpoint to handle file uploads from users
 app.post('/upload', upload.single('file'), isAuth, (req, res) => {
     if (!req.file) {
-        return res.status(400).send('No file uploaded');
+        return res.status(400).send('No file uploaded or invalid file type');
     }
-
 
     const fileUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
     res.status(200).json({ fileUrl });
 });
 
+// Error handling middleware for multer
+app.use((err, req, res, next) => {
+    if (err instanceof multer.MulterError || err.message === 'Only images, PDFs, MP3s, and videos are allowed') {
+        return res.status(400).json({ error: err.message });
+    }
+    next(err);
+});
+
+
 app.get('/uploads/:filename', (req, res) => {
     const filename = req.params.filename;
     const filePath = path.join(__dirname, 'uploads', filename);
 
-    // Check if the file exists before sending it
-    res.sendFile(filePath, (err) => {
-        if (err) {
-            res.status(404).json({ message: 'File not found' });
+    // Check if file exists
+    if (!fs.existsSync(filePath)) {
+        return res.status(404).json({ message: 'File not found' });
+    }
+
+    // Get the file extension to determine if it's a media file
+    const fileExtension = path.extname(filename).toLowerCase();
+    const mediaTypes = ['.mp4', '.webm', '.mp3', '.wav']; // Video and audio formats
+
+    if (mediaTypes.includes(fileExtension)) {
+        const stat = fs.statSync(filePath);
+        const fileSize = stat.size;
+        const range = req.headers.range;
+
+        // Handle range requests for streaming
+        if (range) {
+            const parts = range.replace(/bytes=/, '').split('-');
+            const start = parseInt(parts[0], 10);
+            const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+            const chunkSize = end - start + 1;
+
+            const fileStream = fs.createReadStream(filePath, { start, end });
+            res.writeHead(206, {
+                'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+                'Accept-Ranges': 'bytes',
+                'Content-Length': chunkSize,
+                'Content-Type': getContentType(fileExtension),
+            });
+            fileStream.pipe(res);
+        } else {
+            res.writeHead(200, {
+                'Content-Length': fileSize,
+                'Content-Type': getContentType(fileExtension),
+            });
+            fs.createReadStream(filePath).pipe(res);
         }
-    });
+    } else {
+        // For non-media files, serve as a regular download
+        res.sendFile(filePath);
+    }
 });
+
+// Helper function to determine Content-Type based on file extension
+function getContentType(extension) {
+    switch (extension) {
+        case '.mp4':
+            return 'video/mp4';
+        case '.webm':
+            return 'video/webm';
+        case '.mp3':
+            return 'audio/mpeg';
+        case '.wav':
+            return 'audio/wav';
+        default:
+            return 'application/octet-stream';
+    }
+}
 
 // Serve static files in the uploads directory
 app.use('/uploads', express.static('uploads'));

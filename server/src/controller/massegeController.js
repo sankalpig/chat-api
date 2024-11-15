@@ -1,6 +1,9 @@
 const Message = require("../model/massege");
 const { findById } = require("../model/user");
 const Conversation = require("../model/converstion");
+const fs = require('fs');
+const path = require('path');
+const { moveFile } = require("../lib/kit");
 
 const getTheMassege = async (req, res) => {
     try {
@@ -85,27 +88,54 @@ const getConversationsData = async (req, res) => {
     }
 };
 
+
+
+
+
 const deleteMessage = async (req, res) => {
     try {
         const { msgId } = req.params;
 
-        const mesaage = await Message.findByIdAndDelete(msgId);
+        // Find the message by ID
+        const message = await Message.findByIdAndDelete(msgId);
 
-        if (!mesaage) {
-            return res.status(201).json({
-                message: 'mesaage not found'
+        // If the message doesn't exist, return an error
+        if (!message) {
+            return res.status(404).json({
+                message: 'Message not found'
             });
         }
 
+        // Check if the message has a fileUrl (it means there's a file associated with it)
+        if (message.fileUrl) {
+            const filePath = path.join(__dirname, '../app/uploads', message.fileUrl.split('/').pop()); // Assuming 'uploads' folder stores your files
+            console.log(filePath);
+            // Check if the file exists and delete it
+            fs.unlink(filePath, (err) => {
+                if (err) {
+                    console.error('Error deleting file:', err);
+                } else {
+                    // const sourceFilePath = path.join(__dirname, '../app/uploads', message.fileUrl.split('/').pop());
+                    // const destinationFilePath = path.join(__dirname, '../app/logsFile', message.fileUrl.split('/').pop());
+
+                    // // Move the file
+                    // moveFile(sourceFilePath, destinationFilePath);
+
+                    console.log('File deleted successfully:', filePath);
+                }
+            });
+        }
+
+        // Return success response
         res.status(200).json({
-            message: 'mesaage deleted successfully',
-            mesaage: mesaage
+            message: 'Message deleted successfully',
+            messageData: message
         });
 
     } catch (error) {
-        res.send({
-            message: 'internal error ',
-            error: error
+        res.status(500).json({
+            message: 'Internal error',
+            error: error.message
         });
     }
 };

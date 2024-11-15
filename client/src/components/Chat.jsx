@@ -49,7 +49,7 @@ const Chat = () => {
 
         // Set up listeners for incoming messages
         const handleReceiveMessage = (message) => {
-            console.log(message, "messages from socket");
+            // console.log(message, "messages from socket");
             setMessages(message);
             setUpdateData((prevStatew) => !prevStatew);
         };
@@ -112,7 +112,7 @@ const Chat = () => {
 
             sendFile({ senderId: user._id, receiverId: currentUserId, fileName: file.name, fileUrl: response.data.fileUrl, fileType: file.type });
 
-            console.log('File uploaded successfully:', response.data);
+            // console.log('File uploaded successfully:', response.data);
         } catch (error) {
             console.error('Error uploading file:', error);
         }
@@ -120,6 +120,7 @@ const Chat = () => {
     };
     const handleFileUpload = (e) => {
         const uploadedFile = e.target.files[0];
+        // console.log(uploadedFile);
         if (uploadedFile) {
             setFile(uploadedFile);
         }
@@ -143,7 +144,7 @@ const Chat = () => {
         // console.log(resDelete);
 
     };
-    console.log(allUserData);
+    // console.log(allUserData);
     return (
         <MDBContainer fluid className="py-5" style={{ backgroundColor: "#CDC4F9" }}>
             <MDBRow>
@@ -186,8 +187,9 @@ const Chat = () => {
                                                             />
                                                             <div className="pt-1">
                                                                 <p className="fw-bold mb-0">{data.fullName}</p>
+
                                                                 {/* <p className="small text-muted">{data.lastMessage}</p> */}
-                                                                <p>{data.isActive && "online"}</p>
+                                                                <p>{data.isActive ? "online" : <span>{moment(data.updatedAt).startOf('hour').fromNow()}</span>}</p>
                                                             </div>
                                                         </div>
                                                     </a>
@@ -199,52 +201,61 @@ const Chat = () => {
                                 <MDBCol md="6" lg="7" xl="8">
                                     <div className="pt-3 pe-3">
                                         <h4>{currentUserName}</h4>
-                                        {messages?.data?.length >= 0 ? messages?.data?.map((message, index) => (
-                                            <div
-                                                key={index}
-                                            >
-                                                <div>
+                                        {messages?.data?.length > 0 ? (
+                                            messages.data.map((message, index) => (
+                                                <div key={index}>
+                                                    <div>
+                                                        <p>
+                                                            <b>{message.senderId.fullName}</b>
+                                                            <span> {moment(message.createdAt).format('MMMM Do YYYY, h:mm:ss a')}</span>
+                                                        </p>
+                                                        <p
+                                                            className="small p-2 me-3 mb-1 rounded-3"
+                                                            style={{
+                                                                backgroundColor: "#f5f6f7",
+                                                                color: "#000"
+                                                            }}
+                                                        >
+                                                            {/* Display text messages */}
+                                                            {message.messageType === "text" && message.content}
 
-                                                    <p> <b>{message.senderId.fullName}</b>
-                                                        <span> {moment(message.createdAt).format('MMMM Do YYYY, h:mm:ss a')}</span>
+                                                            {/* Display PDF files */}
+                                                            {message.messageType === "application/pdf" && (
+                                                                <a href={message.fileUrl} target="_blank" rel="noopener noreferrer" download>
+                                                                    {message.content}
+                                                                </a>
+                                                            )}
 
-                                                    </p>
-                                                    <p
-                                                        className="small p-2 me-3 mb-1 rounded-3"
-                                                        style={{
-                                                            backgroundColor: "#f5f6f7",
-                                                            color: "#000"
-                                                        }}
-                                                    >
+                                                            {/* Display images */}
+                                                            {message.messageType.startsWith("image/") && message.fileUrl && (
+                                                                <img src={message.fileUrl} alt="file" style={{ maxWidth: "100%", height: "auto" }} />
+                                                            )}
 
-                                                        {message.messageType === "text" && message.content} <br />
-                                                        {message.messageType === "application/pdf" ? (
-                                                            <a href={message.fileUrl} target="_blank" rel="noopener noreferrer" download>
-                                                                {message.content}
-                                                            </a>
-                                                        ) : (
-                                                            <>  {message.fileUrl && <img src={message.fileUrl} alt="file" />}
-                                                            </>)}
+                                                            {/* Display audio files */}
+                                                            {message.messageType.startsWith("audio/") && message.fileUrl && (
+                                                                <audio controls>
+                                                                    <source src={message.fileUrl} type={message.messageType} />
+                                                                    Your browser does not support the audio element.
+                                                                </audio>
+                                                            )}
 
+                                                            {/* Display video files */}
+                                                            {message.messageType.startsWith("video/") && message.fileUrl && (
+                                                                <video controls style={{ maxWidth: "100%" }}>
+                                                                    <source src={message.fileUrl} type={message.messageType} />
+                                                                    Your browser does not support the video element.
+                                                                </video>
+                                                            )}
+                                                        </p>
 
-                                                    </p>
-                                                    <MDBBtn onClick={() => handleDelete(message._id)}>delete</MDBBtn>
+                                                        <MDBBtn onClick={() => handleDelete(message._id)}>delete</MDBBtn>
+                                                    </div>
                                                 </div>
-                                                {/* <div>
-                                                    <p> <b>{message.senderId.fullName}</b></p>
-                                                    <p
-                                                        className="small p-2 me-3 mb-1 rounded-3"
-                                                        style={{
-                                                            backgroundColor: "#f5f6f7",
-                                                            color: "#000"
-                                                        }}
-                                                    >
+                                            ))
+                                        ) : (
+                                            <p>Message not available</p>
+                                        )}
 
-                                                        {message.content}
-                                                    </p>
-                                                </div> */}
-                                            </div>
-                                        )) : <><p>Message not available</p></>}
 
                                     </div>
                                     <div className="text-muted d-flex justify-content-start align-items-center pe-3 pt-3 mt-2">
@@ -264,6 +275,7 @@ const Chat = () => {
                                     </div>
                                     <input
                                         type="file"
+                                        accept=".pdf, image/*, audio/mpeg, video/*"
                                         className="form-control form-control-lg"
                                         placeholder="Type message"
                                         onChange={(e) => handleFileUpload(e)}
