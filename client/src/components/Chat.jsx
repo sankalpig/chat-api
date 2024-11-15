@@ -15,6 +15,7 @@ import { deleteMsgById, fileUploading, getAllUsers, getMsgBysenderId } from "../
 import { setupSocket, sendMessage, sendFile, socket } from "../services/socket";
 import getUserInfo from "../services/jwtDecod";
 import { useNavigate } from 'react-router-dom';
+import { useSocket } from "../services/SocketContext";
 
 
 const Chat = () => {
@@ -29,6 +30,8 @@ const Chat = () => {
     const [file, setFile] = useState(null);
     const { user } = getUserInfo();
     const navigate = useNavigate();
+    const { setCallerSignalData } = useSocket();
+
     // Fetch all users and set up socket connection once
     useEffect(() => {
         (async () => {
@@ -41,7 +44,6 @@ const Chat = () => {
             }
 
         })();
-
         setupSocket({
             senderId: user._id,
             receiverId: currentUserId,
@@ -62,6 +64,11 @@ const Chat = () => {
             setMessages(preMsg);
             setUpdateData((prevStatew) => !prevStatew);
         };
+        const callingNotification = (data) => {
+            setCallerSignalData(data);
+            const roomId = [user._id, currentUserId].sort().join("-");
+            navigate(`/video-call/${roomId}`);
+        };
 
         // Attach socket listeners
         socket.on("receiveMessage", handleReceiveMessage);
@@ -70,6 +77,8 @@ const Chat = () => {
         socket.on("disconnect-user", () => {
             setUpdateData((prevStatew) => !prevStatew);
         });
+        socket.on('callUser', callingNotification);
+
 
         return () => {
             socket.off("receiveMessage", handleReceiveMessage);
@@ -78,6 +87,7 @@ const Chat = () => {
             socket.off("disconnect-user", () => {
                 setUpdateData((prevStatew) => !prevStatew);
             });
+            socket.off("callUser", callingNotification);
         };
     }, [user._id, currentUserId, update]);
 

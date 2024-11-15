@@ -4,6 +4,7 @@ import { io } from "socket.io-client";
 const socket = io("http://localhost:5000");
 const token = localStorage.getItem('token');
 export const setupSocket = ({ senderId, receiverId }) => {
+
     socket.emit("joinRoom", { token, senderId, receiverId });
 
     socket.on("message", (message) => {
@@ -15,7 +16,7 @@ export const setupSocket = ({ senderId, receiverId }) => {
     });
 
     socket.on("callUser", (data) => {
-        console.log("Incoming Call:", data);
+        // console.log("Incoming Call:", data);
     });
 
     socket.on("callAccepted", (signal) => {
