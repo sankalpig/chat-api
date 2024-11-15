@@ -31,8 +31,9 @@ const Chat = () => {
     // Fetch all users and set up socket connection once
     useEffect(() => {
         (async () => {
-            const { data } = await getAllUsers();
+            const { data } = await getAllUsers(user._id);
             setAllUserData(data);
+            console.log(data);
             if (!update) {
                 setCurrentUserId(data?.userData[0]?._id);
                 setCurrentUserName(data?.userData[0]?.fullName);
@@ -167,7 +168,7 @@ const Chat = () => {
                                                     onClick={() => {
                                                         setCurrentUserName(data.fullName);
                                                         setCurrentUserId(data._id);
-                                                        setMessages([]);
+                                                        // setMessages([]);
                                                         setUpdate(true);
                                                     }}
                                                 >

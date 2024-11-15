@@ -12,8 +12,8 @@ export const loginUser = async (userData) => {
     return await axios.post(`${API_URL}/users/login`, userData);
 };
 
-export const getAllUsers = async () => {
-    return await axios.get(`${API_URL}/users/get-all-users`, {
+export const getAllUsers = async (id) => {
+    return await axios.get(`${API_URL}/users/get-all-users/${id}`, {
         headers: { Authorization: `Bearer ${token}` }
     });
 };

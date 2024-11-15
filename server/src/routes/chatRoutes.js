@@ -7,7 +7,7 @@ const { isAuth } = require('../config/isAuth');
 // Register a new user
 router.post('/users/login', userLogin);
 router.post('/users/register', userRegister);
-router.get('/users/get-all-users', isAuth, getAllusers);
+router.get('/users/get-all-users/:id', isAuth, getAllusers);
 router.delete('/users/delete', isAuth, deleteUsersById);
 router.get('/users/:id', isAuth, getUserById);
 router.get('/users/:id', isAuth, archiveChat);

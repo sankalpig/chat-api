@@ -80,15 +80,16 @@ const userRegister = async (req, res) => {
 
 const getAllusers = async (req, res) => {
     try {
-        const userData = await User.find();
+        const { id } = req.params; // Get the 'id' parameter from the request
+        const usersData = await User.find({ _id: { $ne: id } }); // Exclude the specified 'id'
         res.send({
-            message: "successs",
-            userData: userData
+            message: "success",
+            userData: usersData
         });
     } catch (error) {
-        res.send({
+        res.status(500).send({
             message: "internal error",
-            error: error
+            error: error.message
         });
     }
 };
