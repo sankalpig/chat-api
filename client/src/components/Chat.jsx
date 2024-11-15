@@ -207,7 +207,7 @@ const Chat = () => {
                                                             <div className="pt-1">
                                                                 <p className="fw-bold mb-0">{data.fullName}</p>
 
-                                                                {/* <p className="small text-muted">{data.lastMessage}</p> */}
+                                                                <p className="small text-muted">{data.lastMessage}</p>
                                                                 <p>{data.isActive ? "online" : <span>{moment(data.updatedAt).startOf('hour').fromNow()}</span>}</p>
                                                             </div>
                                                         </div>
